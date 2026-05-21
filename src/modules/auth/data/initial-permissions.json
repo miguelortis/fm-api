@@ -1,0 +1,12 @@
+{
+  "Administración": [
+    { "name": "Ver Usuarios", "slug": "users:view" },
+    { "name": "Crear Usuarios", "slug": "users:create" },
+    { "name": "Editar Usuarios", "slug": "users:edit" }
+  ],
+  "Consultas": [
+    { "name": "Ver Citas", "slug": "appointments:view" },
+    { "name": "Crear Citas", "slug": "appointments:create" }
+  ],
+  "Seguridad": [{ "name": "Gestionar Roles", "slug": "roles:manage" }]
+}
