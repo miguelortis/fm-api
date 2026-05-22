@@ -9,7 +9,14 @@ export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
   async findByNationalId(nationalId: string) {
-    return this.userModel.findOne({ nationalId }).populate('role').exec();
+    return this.userModel
+      .findOne({ nationalId })
+      .populate({
+        path: 'role',
+        populate: { path: 'permissions' },
+      })
+      .populate('coverage.planId')
+      .exec();
   }
 
   async findById(id: string): Promise<User | null> {

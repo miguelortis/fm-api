@@ -33,22 +33,20 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
+    delete user.password; // Eliminar la contraseña del objeto antes de enviarlo
     // 3. Generar el JWT con los datos clave (Payload)
     const payload = {
       sub: user._id,
       role: user.role,
       nationalId: user.nationalId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      isActive: user.isActive,
     };
     return {
       access_token: this.jwtService.sign(payload),
-      user: {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        nationalId: user.nationalId,
-        email: user.email,
-        isActive: user.isActive,
-      },
+      user: user,
     };
   }
 
