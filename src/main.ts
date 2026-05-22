@@ -20,7 +20,7 @@ async function bootstrap() {
     app.setGlobalPrefix('api');
 
     app.enableCors({
-      origin: ['http://localhost:3000', '*'], // o un array de orígenes permitidos
+      origin: ['http://localhost:3000', 'https://fm-app-five.vercel.app'], // o un array de orígenes permitidos
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       credentials: true,
     });
