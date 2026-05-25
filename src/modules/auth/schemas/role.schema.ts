@@ -23,6 +23,9 @@ export class Role {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ default: false })
+  deleted: boolean; // Para borrado lógico
 }
 
 export const RoleSchema = SchemaFactory.createForClass(Role);

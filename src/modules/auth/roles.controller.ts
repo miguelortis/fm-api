@@ -6,6 +6,9 @@ import {
   HttpCode,
   HttpStatus,
   Body,
+  Put,
+  Param,
+  Delete,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -17,7 +20,7 @@ import { CheckPermissions } from '@/common/decorators/check-permissions.decorato
 
 import * as initialPermissionsJson from './data/initial-permissions.json';
 
-@Controller('roles-setup')
+@Controller('roles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RolesController {
   constructor(
@@ -25,57 +28,6 @@ export class RolesController {
     private permissionModel: Model<PermissionDocument>,
     @InjectModel(Role.name) private roleModel: Model<RoleDocument>,
   ) {}
-
-  /* @Post('seed')
-  @CheckPermissions('roles:manage')
-  async seed() {
-    const initialPermissions = [
-      { name: 'Ver Usuarios', slug: 'users:view', module: 'Administración' },
-      {
-        name: 'Crear Usuarios',
-        slug: 'users:create',
-        module: 'Administración',
-      },
-      { name: 'Editar Usuarios', slug: 'users:edit', module: 'Administración' },
-      { name: 'Ver Citas', slug: 'appointments:view', module: 'Consultas' },
-      { name: 'Crear Citas', slug: 'appointments:create', module: 'Consultas' },
-      { name: 'Gestionar Roles', slug: 'roles:manage', module: 'Seguridad' },
-    ];
-
-    const savedPermissions: PermissionDocument[] = [];
-    for (const p of initialPermissions) {
-      const exists = await this.permissionModel.findOne({ slug: p.slug });
-      if (!exists) {
-        const newP = await this.permissionModel.create(p);
-        savedPermissions.push(newP);
-      } else {
-        savedPermissions.push(exists);
-      }
-    }
-
-    const rootRole = await this.roleModel.findOneAndUpdate(
-      { slug: 'root' },
-      {
-        name: 'Super Administrador',
-        slug: 'root',
-        isRoot: true,
-        permissions: savedPermissions.map((p) => p._id) as any,
-      },
-      { upsert: true, new: true },
-    );
-
-    return {
-      message: 'Semilla ejecutada con éxito',
-      permissionsCount: savedPermissions.length,
-      rootRole: rootRole.name,
-    };
-  } */
-
-  /* @Get('permissions')
-  @UseGuards(JwtAuthGuard) // Solo usuarios logueados pueden ver la lista
-  async getPermissions() {
-    return this.permissionModel.find().sort({ module: 1 });
-  } */
 
   // 1. OBTENER PERMISOS: Devuelve todos los permisos agrupados implícitamente por módulo
   @Get('permissions')
@@ -85,7 +37,7 @@ export class RolesController {
   }
 
   // 2. CREAR O ACTUALIZAR ROL: Recibe el nombre y el array de IDs de permisos
-  @Post('roles')
+  @Post()
   @HttpCode(HttpStatus.CREATED)
   @CheckPermissions('roles:manage')
   async createRole(
@@ -117,6 +69,57 @@ export class RolesController {
       message: 'Rol guardado correctamente',
       role: updatedRole,
     };
+  }
+
+  @Get()
+  @CheckPermissions('roles:manage')
+  async getRoles() {
+    return this.roleModel
+      .find({ deleted: { $ne: true } })
+      .populate('permissions')
+      .exec();
+  }
+
+  @Put(':id')
+  @HttpCode(HttpStatus.OK)
+  @CheckPermissions('roles:manage')
+  async updateRole(
+    @Body() updateRoleDto: { name: string; permissions: string[] },
+    @Param('id') id: string,
+  ) {
+    const { name, permissions } = updateRoleDto;
+
+    // Generamos un slug limpio a partir del nombre (Ej: "Médico Especialista" -> "medico-especialista")
+    const slug = name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    // Actualizamos el rol en MongoDB
+    const updatedRole = await this.roleModel.findByIdAndUpdate(
+      id,
+      {
+        name,
+        slug,
+        permissions: permissions as any, // Mongoose se encarga de convertirlos a ObjectIds
+      },
+      { new: true },
+    );
+
+    return {
+      message: 'Rol actualizado correctamente',
+      role: updatedRole,
+    };
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @CheckPermissions('roles:manage')
+  async deleteRole(@Param('id') id: string) {
+    await this.roleModel.findByIdAndUpdate(id, { deleted: true });
+    return;
   }
 
   @Post('seed')

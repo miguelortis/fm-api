@@ -33,7 +33,7 @@ import { JwtStrategy } from '@/common/strategies/jwt.strategy';
   providers: [AuthService, JwtStrategy],
   controllers: [
     AuthController, // Maneja: /auth/login, /auth/register
-    RolesController, // Maneja: /roles-setup/seed, /roles-setup/permissions
+    RolesController, // Maneja: /roles/seed, /roles/permissions
   ],
   exports: [AuthService],
 })
