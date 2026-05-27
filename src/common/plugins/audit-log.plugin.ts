@@ -1,118 +1,148 @@
-import { IUser } from '@/modules/users/interfaces/user.interface';
-import { Schema, Document, Query, Model } from 'mongoose';
+import { Schema, Document, Model } from 'mongoose';
 import { ClsService } from 'nestjs-cls';
 
-interface AuditableQuery extends Query<any, any> {
-  _previousState?: any;
+// 1. Interfaz estricta para el usuario guardado en el contexto CLS
+interface AuditUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  [key: string]: unknown; // Permite otras propiedades sin caer en any
 }
 
-interface AuditableDocument extends Document {
-  _previousState?: any;
-  $isNew?: boolean;
+// 2. Interfaces para los contextos internos de Mongoose
+interface MongooseQueryContext {
+  model: Model<Document>;
+  getQuery: () => { _id?: string };
 }
 
-export function AuditLogPlugin(schema: Schema, cls: ClsService) {
-  // 1. CAPTURAR EL "ANTES" EN CASO DE ACTUALIZACIONES O BORRADOS
-  const preHooks = [
+interface MongooseDocumentContext extends Document {
+  constructor: Model<Document>;
+}
+
+export function AuditLogPlugin(schema: Schema, cls: ClsService): void {
+  // =========================================================================
+  // 1. CAPTURAR EL "ANTES" (SOLO EN ACTUALIZACIONES Y BORRADOS)
+  // =========================================================================
+  const preMutationHooks = [
     'findOneAndUpdate',
     'updateOne',
     'deleteOne',
     'findOneAndDelete',
   ] as const;
 
-  preHooks.forEach((hook) => {
-    // SOLUCIÓN: Eliminamos el parámetro 'next' ya que async/await gestiona el flujo solo
-    schema.pre(hook, async function (this: AuditableQuery) {
+  preMutationHooks.forEach((hook) => {
+    schema.pre(hook, async function (this: MongooseQueryContext) {
       try {
         const query = this.getQuery();
-        const docToUpdate = await this.model.findOne(query).lean();
+        const docToUpdate = (await this.model.findOne(query).lean()) as Record<
+          string,
+          unknown
+        > | null;
+
         if (docToUpdate) {
-          this._previousState = docToUpdate;
+          // Guardamos en el CLS usando el ID único en formato string para evitar colisiones
+          const docId = docToUpdate?._id ? docToUpdate?._id : 'default';
+          cls.set(`prev_state_${docId as string}`, docToUpdate);
         }
       } catch (err) {
-        console.error('Error capturando estado anterior:', err);
+        console.error(`Error capturando estado anterior en pre-${hook}:`, err);
       }
     });
   });
 
-  // 2. REGISTRAR DESPUÉS DE UNA MODIFICACIÓN EXITOSA (CREATE o UPDATE)
-  const postSaveHooks = ['save', 'findOneAndUpdate', 'updateOne'] as const;
+  // =========================================================================
+  // 2. PROCESAMIENTO CENTRALIZADO POST-MUTACIÓN (CREATE, UPDATE, DELETE)
+  // =========================================================================
+  const postMutationHooks = [
+    'save',
+    'findOneAndUpdate',
+    'updateOne',
+    'deleteOne',
+    'findOneAndDelete',
+  ] as const;
 
-  postSaveHooks.forEach((hook) => {
-    schema.post(
-      hook,
-      async function (this: AuditableQuery, doc: AuditableDocument) {
-        try {
-          if (!doc) return;
-
-          const user: IUser = cls.get('audit_user');
-          const ip = cls.get('audit_ip') || '127.0.0.1';
-          if (!user) return;
-
-          const previousState = this._previousState;
-          const newState =
-            typeof doc.toObject === 'function' ? doc.toObject() : doc;
-
-          let action = 'UPDATE';
-          if (!previousState && '$isNew' in doc && doc.$isNew) {
-            action = 'CREATE';
-          }
-
-          if (
-            action === 'UPDATE' &&
-            JSON.stringify(previousState) === JSON.stringify(newState)
-          )
-            return;
-
-          const modelConstructor = doc.constructor as Model<any>;
-          const AuditLogModel = modelConstructor.db.model('AuditLog');
-
-          if (modelConstructor.modelName === 'AuditLog') return;
-
-          await AuditLogModel.create({
-            userId: user._id,
-            userName: user.firstName + ' ' + user.lastName,
-            module: modelConstructor.modelName.toLowerCase(),
-            action,
-            previousState,
-            newState,
-            ipAddress: ip,
-          });
-        } catch (err) {
-          console.error('Error guardando bitácora post-mutación:', err);
-        }
-      },
-    );
-  });
-
-  // 3. REGISTRAR DESPUÉS DE UN BORRADO EXITOSO (DELETE)
-  const postDeleteHooks = ['deleteOne', 'findOneAndDelete'] as const;
-
-  postDeleteHooks.forEach((hook) => {
-    schema.post(hook, async function (this: AuditableQuery) {
+  postMutationHooks.forEach((hook) => {
+    schema.post(hook, async function (this: unknown, doc: unknown) {
       try {
-        const user: IUser = cls.get('audit_user');
-        const ip = cls.get('audit_ip') || '127.0.0.1';
-        const previousState = this._previousState;
+        // Resolvemos el constructor del modelo de forma segura y tipada
+        let modelConstructor: Model<Document> | null = null;
 
-        if (!user || !previousState) return;
+        if (doc && typeof doc === 'object' && 'constructor' in doc) {
+          modelConstructor = (doc as MongooseDocumentContext).constructor;
+        } else if (this && typeof this === 'object' && 'model' in this) {
+          modelConstructor = (this as MongooseQueryContext).model;
+        }
 
-        const modelConstructor = this.model;
+        if (!modelConstructor || modelConstructor.modelName === 'AuditLog')
+          return;
+
+        // Extraemos las variables del CLS con sus respectivos tipos declarados
+        const user = cls.get<AuditUser>('audit_user');
+        const httpMethod = cls.get<string>('audit_method');
+        const ip = cls.get<string>('audit_ip') || '127.0.0.1';
+
+        // Si la mutación no viene de una petición HTTP autenticada, ignoramos
+        if (!user || !httpMethod) return;
+
+        // Recuperamos el ID del documento inspeccionando 'doc' o la Query de forma segura
+        let docId = 'default';
+        if (doc && typeof doc === 'object' && '_id' in doc) {
+          docId = String((doc as Record<string, unknown>)._id);
+        } else if (this && typeof this === 'object' && 'getQuery' in this) {
+          const query = (this as MongooseQueryContext).getQuery();
+          if (query._id) docId = String(query._id);
+        }
+
+        const previousState =
+          cls.get<Record<string, unknown> | null>(`prev_state_${docId}`) ||
+          null;
+
+        // Saneamos el estado nuevo
+        let newState: Record<string, unknown> | null = null;
+        if (doc) {
+          newState =
+            typeof (doc as Document).toObject === 'function'
+              ? (doc as Document).toObject()
+              : (doc as Record<string, unknown>);
+        }
+
+        // 🔥 DEDUCCIÓN ATÓMICA DE LA ACCIÓN
+        let action = 'UPDATE';
+        if (httpMethod === 'POST') action = 'CREATE';
+
+        if (
+          httpMethod === 'DELETE' ||
+          hook === 'deleteOne' ||
+          hook === 'findOneAndDelete' ||
+          (newState && newState['deleted'] === true)
+        ) {
+          action = 'DELETE';
+        }
+
+        // Si es un UPDATE pero no cambiaron los datos, cancelamos para no saturar MongoDB Atlas
+        if (
+          action === 'UPDATE' &&
+          JSON.stringify(previousState) === JSON.stringify(newState)
+        )
+          return;
+
+        // Invocamos el modelo de destino de forma dinámica y segura
         const AuditLogModel = modelConstructor.db.model('AuditLog');
-
-        if (modelConstructor.modelName === 'AuditLog') return;
-
+        if (!AuditLogModel) return;
         await AuditLogModel.create({
-          userId: user._id,
-          userName: user.firstName + ' ' + user.lastName,
+          userId: user.userId,
+          userName: `${user.firstName} ${user.lastName}`,
           module: modelConstructor.modelName.toLowerCase(),
-          action: 'DELETE',
+          action,
           previousState,
-          newState: null,
+          newState: action === 'DELETE' ? null : newState,
           ipAddress: ip,
         });
       } catch (err) {
-        console.error('Error guardando bitácora post-delete:', err);
+        console.error(
+          `Error guardando bitácora automatizada en post-${hook}:`,
+          err,
+        );
       }
     });
   });

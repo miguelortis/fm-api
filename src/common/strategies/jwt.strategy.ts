@@ -44,6 +44,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Retornamos una estructura limpia para los Guards
     return {
       userId: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       role: user?.role?.['slug'],
       isRoot: user?.role?.['isRoot'],

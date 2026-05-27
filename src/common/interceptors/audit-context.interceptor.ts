@@ -16,9 +16,10 @@ export class AuditContextInterceptor implements NestInterceptor {
       user?: any;
       headers: Record<string, any>;
       socket: { remoteAddress?: string };
+      method: string;
     } = context.switchToHttp().getRequest();
 
-    const user = request.user; // Inyectado por tu estrategia JWT
+    const user = request.user;
 
     if (user) {
       this.cls.set('audit_user', user);
@@ -28,6 +29,8 @@ export class AuditContextInterceptor implements NestInterceptor {
           request.socket.remoteAddress ||
           '127.0.0.1',
       );
+      // 💡 GUARDAMOS EL VERBO HTTP REAL DE LA PETICIÓN
+      this.cls.set('audit_method', request.method);
     }
 
     return next.handle();

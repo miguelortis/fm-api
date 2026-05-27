@@ -62,7 +62,7 @@ export class RolesController {
         permissions: permissions as any, // Mongoose se encarga de convertirlos a ObjectIds
         isRoot: false, // Por seguridad, ningún rol creado desde la UI puede ser Root
       },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     );
 
     return {
@@ -105,7 +105,7 @@ export class RolesController {
         slug,
         permissions: permissions as any, // Mongoose se encarga de convertirlos a ObjectIds
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     return {
@@ -163,7 +163,7 @@ export class RolesController {
         isRoot: true,
         permissions: savedPermissions.map((p) => p._id) as any,
       },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     );
 
     return {

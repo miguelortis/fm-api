@@ -24,16 +24,19 @@ import { AuditLogPlugin } from './common/plugins/audit-log.plugin';
       middleware: { mount: true }, // Monta automáticamente un middleware para capturar el hilo
     }),
     MongooseModule.forRootAsync({
-      imports: [ConfigModule, ClsModule],
+      imports: [ClsModule],
       inject: [ConfigService, ClsService],
-      useFactory: (cls: ClsService) => ({
-        uri: process.env.MONGO_URI,
-        connectionFactory: (connection: Connection) => {
-          // Registramos el plugin pasándole el CLS de NestJS
-          connection.plugin((schema) => AuditLogPlugin(schema, cls));
-          return connection;
-        },
-      }),
+      useFactory: (configService: ConfigService, cls: ClsService) => {
+        const mongoUri = configService.get<string>('MONGODB_URI');
+
+        return {
+          uri: mongoUri,
+          connectionFactory: (connection: Connection) => {
+            connection.plugin((schema) => AuditLogPlugin(schema, cls));
+            return connection;
+          },
+        };
+      },
     }),
     MongooseModule.forFeature([
       { name: AuditLog.name, schema: AuditLogSchema },

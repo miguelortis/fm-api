@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
+import { AuditContextInterceptor } from './common/interceptors/audit-context.interceptor';
 
 async function bootstrap() {
   try {
@@ -18,6 +20,8 @@ async function bootstrap() {
       }),
     );
     app.setGlobalPrefix('api');
+    const clsService = app.get(ClsService);
+    app.useGlobalInterceptors(new AuditContextInterceptor(clsService));
 
     app.enableCors({
       origin: ['http://localhost:3000', 'https://fm-app-five.vercel.app'], // o un array de orígenes permitidos
