@@ -130,7 +130,7 @@ export function AuditLogPlugin(schema: Schema, cls: ClsService): void {
         const AuditLogModel = modelConstructor.db.model('AuditLog');
         if (!AuditLogModel) return;
         await AuditLogModel.create({
-          userId: user.userId,
+          userId: user._id,
           userName: `${user.firstName} ${user.lastName}`,
           module: modelConstructor.modelName.toLowerCase(),
           action,

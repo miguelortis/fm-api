@@ -8,7 +8,7 @@ import { User, UserDocument } from '@/modules/users/schemas/user.schema';
 import { IPermission } from '@/modules/auth/interfaces/permission.interface';
 
 interface JwtPayload {
-  sub: string; // userId
+  sub: string; // _id (userId)
   email: string;
   role: string; // <-- MUY IMPORTANTE para que el RolesGuard funcione
 }
@@ -43,7 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Retornamos una estructura limpia para los Guards
     return {
-      userId: user._id,
+      _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,

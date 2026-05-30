@@ -26,3 +26,6 @@ export class AuditLog extends Document {
 }
 
 export const AuditLogSchema = SchemaFactory.createForClass(AuditLog);
+
+AuditLogSchema.index({ module: 1, action: 1 });
+AuditLogSchema.index({ createdAt: -1 });

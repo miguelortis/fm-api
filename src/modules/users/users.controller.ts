@@ -15,8 +15,8 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getProfile(@Req() request: Request & { user?: { userId: string } }) {
-    const userId = request.user?.userId;
+  async getProfile(@Req() request: Request & { user?: { _id: string } }) {
+    const userId = request.user?._id;
     if (!userId) {
       throw new UnauthorizedException('Usuario no autenticado');
     }

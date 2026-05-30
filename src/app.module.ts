@@ -13,6 +13,7 @@ import { ServicesModule } from './modules/services/services.module';
 import { AuditLog, AuditLogSchema } from './common/schemas/audit-log.schema';
 import { ClsModule, ClsService } from 'nestjs-cls';
 import { AuditLogPlugin } from './common/plugins/audit-log.plugin';
+import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AuditLogPlugin } from './common/plugins/audit-log.plugin';
     MedicalModule,
     PlansModule,
     ServicesModule,
+    AuditLogsModule,
   ],
   providers: [
     {

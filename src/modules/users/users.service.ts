@@ -24,9 +24,9 @@ export class UsersService {
     return this.userModel.findById(id).populate('coverage.planId').exec();
   }
 
-  async getProfile(userId: string) {
+  async getProfile(_id: string) {
     const user = await this.userModel
-      .findById(userId)
+      .findById(_id)
       .populate({
         path: 'role',
         populate: { path: 'permissions' },

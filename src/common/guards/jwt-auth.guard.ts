@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 interface JwtPayload {
-  sub: string; // userId
+  sub: string; // _id (userId)
   username: string;
   role: string; // <-- MUY IMPORTANTE para que el RolesGuard funcione
 }
