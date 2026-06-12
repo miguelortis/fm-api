@@ -34,9 +34,6 @@ export class RolesController {
   @Get('permissions')
   //@CheckPermissions('roles:manage')
   async getPermissions(): Promise<Record<string, any[]>> {
-    console.log(
-      'Obteniendo permisos agrupados por módulo para el catálogo del Front',
-    );
     const rawPermissions = await this.permissionModel
       .find()
       .sort({ module: 1, type: 1 })
