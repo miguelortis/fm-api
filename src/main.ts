@@ -25,7 +25,7 @@ async function bootstrap() {
 
     app.enableCors({
       origin: ['http://localhost:3000', 'https://fm-app-five.vercel.app'], // o un array de orígenes permitidos
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
     });
     const port = process.env.PORT ?? 3000;

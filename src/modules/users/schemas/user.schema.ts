@@ -23,6 +23,9 @@ export class User extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Role' })
   role: Types.ObjectId;
 
+  @Prop({ required: true })
+  birthDate: Date;
+
   // RELACIÓN FAMILIAR: Para evitar duplicados
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] })
   familyGroup: Types.ObjectId[]; // Lista de IDs de familiares vinculados

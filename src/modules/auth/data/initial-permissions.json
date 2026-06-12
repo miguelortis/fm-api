@@ -1,12 +1,74 @@
 {
-  "Administración": [
-    { "name": "Ver Usuarios", "slug": "users:view" },
-    { "name": "Crear Usuarios", "slug": "users:create" },
-    { "name": "Editar Usuarios", "slug": "users:edit" }
+  "Validación de Expedientes": [
+    {
+      "name": "Mesa de Validación",
+      "slug": "beneficiaries:view",
+      "description": "Permite acceder visualmente a la bandeja maestra de revisión de expedientes y listar los trabajadores que enviaron solicitudes.",
+      "type": "screen"
+    },
+    {
+      "name": "Auditar Carpetas Físicas",
+      "slug": "beneficiaries:audit",
+      "description": "Permite tildar o destildar en tiempo real los checkboxes de recaudos en físico recibidos en taquilla.",
+      "type": "action"
+    }
   ],
-  "Consultas": [
-    { "name": "Ver Citas", "slug": "appointments:view" },
-    { "name": "Crear Citas", "slug": "appointments:create" }
+  "Control de Coberturas": [
+    {
+      "name": "Bandeja de Renovaciones",
+      "slug": "policies:view",
+      "description": "Permite acceder al panel de auditoría de contratos anuales y ver las solicitudes de renovación pendientes por aprobar.",
+      "type": "screen"
+    },
+    {
+      "name": "Aprobar Cobertura Familiar",
+      "slug": "policies:approve",
+      "description": "Permite al analista de seguros emitir el visto bueno definitivo a la cobertura anual de un familiar dentro de una póliza.",
+      "type": "action"
+    }
   ],
-  "Seguridad": [{ "name": "Gestionar Roles", "slug": "roles:manage" }]
+  "Admisión y Taquilla": [
+    {
+      "name": "Verificador de Coberturas",
+      "slug": "policies:coverage-check",
+      "description": "Permite al personal de admisión o taquilla médica consultar en tiempo real el estatus de asegurado de un paciente usando su cédula.",
+      "type": "screen"
+    }
+  ],
+  "Gestión de Jornadas Anuales": [
+    {
+      "name": "Control de Renovaciones",
+      "slug": "policies:renewal-control",
+      "description": "Permite acceder a la pantalla de control para monitorear y gestionar el proceso general de la jornada de renovación de pólizas.",
+      "type": "screen"
+    },
+    {
+      "name": "Cierre de Lapso Contractual",
+      "slug": "policies:period-closure",
+      "description": "Permite acceder al panel de cierre anual para ejecutar de manera irreversible el script masivo que expira los contratos y pólizas del periodo anterior.",
+      "type": "screen"
+    }
+  ],
+  "Gestión Interna": [
+    {
+      "name": "Control de Usuarios",
+      "slug": "users:view",
+      "description": "Permite listar y consultar las fichas de los trabajadores y el personal registrado en el sistema.",
+      "type": "screen"
+    }
+  ],
+  "Configuración Avanzada": [
+    {
+      "name": "Gestión de Roles",
+      "slug": "roles:manage",
+      "description": "Permite registrar nuevos roles, modificar perfiles de seguridad y alterar la matriz de capacidades de la institución.",
+      "type": "screen"
+    },
+    {
+      "name": "Auditoría de Cambios (Logs)",
+      "slug": "audit-logs:view",
+      "description": "Permite auditar la bitácora automatizada (AuditLogs) para inspeccionar qué usuario realizó, modificó o eliminó cualquier registro en la plataforma.",
+      "type": "screen"
+    }
+  ]
 }

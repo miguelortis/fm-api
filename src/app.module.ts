@@ -14,6 +14,8 @@ import { AuditLog, AuditLogSchema } from './common/schemas/audit-log.schema';
 import { ClsModule, ClsService } from 'nestjs-cls';
 import { AuditLogPlugin } from './common/plugins/audit-log.plugin';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { PoliciesModule } from './modules/policies/policies.module';
+import { BeneficiariesModule } from './modules/beneficiaries/beneficiaries.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
     PlansModule,
     ServicesModule,
     AuditLogsModule,
+    PoliciesModule,
+    BeneficiariesModule,
   ],
   providers: [
     {

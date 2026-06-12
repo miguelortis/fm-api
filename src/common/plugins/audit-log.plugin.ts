@@ -15,10 +15,6 @@ interface MongooseQueryContext {
   getQuery: () => { _id?: string };
 }
 
-interface MongooseDocumentContext extends Document {
-  constructor: Model<Document>;
-}
-
 export function AuditLogPlugin(schema: Schema, cls: ClsService): void {
   // =========================================================================
   // 1. CAPTURAR EL "ANTES" (SOLO EN ACTUALIZACIONES Y BORRADOS)
@@ -65,16 +61,46 @@ export function AuditLogPlugin(schema: Schema, cls: ClsService): void {
     schema.post(hook, async function (this: unknown, doc: unknown) {
       try {
         // Resolvemos el constructor del modelo de forma segura y tipada
-        let modelConstructor: Model<Document> | null = null;
+        let modelConstructor: Model<any> | null = null;
 
-        if (doc && typeof doc === 'object' && 'constructor' in doc) {
-          modelConstructor = (doc as MongooseDocumentContext).constructor;
-        } else if (this && typeof this === 'object' && 'model' in this) {
-          modelConstructor = (this as MongooseQueryContext).model;
+        // 1. Intentar extraer el modelo desde el parámetro 'doc'
+        if (doc && typeof doc === 'object') {
+          if ('constructor' in doc && (doc as any).constructor.modelName) {
+            modelConstructor = (doc as any).constructor;
+          } else if (typeof (doc as any).$model === 'function') {
+            modelConstructor = (doc as any).$model();
+          }
         }
 
-        if (!modelConstructor || modelConstructor.modelName === 'AuditLog')
+        // 2. Si no se halló en 'doc', intentar extraer desde el contexto 'this' (Query o Documento)
+        if (!modelConstructor && this && typeof this === 'object') {
+          if (
+            'model' in this &&
+            (this as any).model &&
+            (this as any).model.modelName
+          ) {
+            // Contexto de Query clásico (ej: findOneAndUpdate)
+            modelConstructor = (this as any).model;
+          } else if (
+            'constructor' in this &&
+            (this as any).constructor.modelName
+          ) {
+            // Contexto de Documento principal (ej: save)
+            modelConstructor = (this as any).constructor;
+          } else if (typeof (this as any).$model === 'function') {
+            // Contexto de Subdocumento / SingleNested
+            modelConstructor = (this as any).$model();
+          }
+        }
+
+        // Si no se encuentra un modelo válido o es la propia bitácora, ignoramos de forma segura
+        if (
+          !modelConstructor ||
+          !modelConstructor.modelName ||
+          modelConstructor.modelName === 'AuditLog'
+        ) {
           return;
+        }
 
         // Extraemos las variables del CLS con sus respectivos tipos declarados
         const user = cls.get<AuditUser>('audit_user');
@@ -129,6 +155,7 @@ export function AuditLogPlugin(schema: Schema, cls: ClsService): void {
         // Invocamos el modelo de destino de forma dinámica y segura
         const AuditLogModel = modelConstructor.db.model('AuditLog');
         if (!AuditLogModel) return;
+
         await AuditLogModel.create({
           userId: user._id,
           userName: `${user.firstName} ${user.lastName}`,

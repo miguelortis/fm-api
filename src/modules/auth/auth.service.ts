@@ -37,12 +37,7 @@ export class AuthService {
     // 3. Generar el JWT con los datos clave (Payload)
     const payload = {
       sub: user._id,
-      role: user.role,
-      nationalId: user.nationalId,
-      firstName: user.firstName,
-      lastName: user.lastName,
       email: user.email,
-      isActive: user.isActive,
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -92,5 +87,11 @@ export class AuthService {
       },
       access_token: await this.jwtService.signAsync(payload),
     };
+  }
+
+  logout() {
+    // En JWT, el logout se maneja del lado del cliente eliminando el token.
+    // Opcionalmente, podrías implementar una lista negra de tokens en el servidor.
+    return { message: 'Logout exitoso' };
   }
 }

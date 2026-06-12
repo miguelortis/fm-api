@@ -17,4 +17,10 @@ export class AuthController {
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  logout() {
+    return this.authService.logout();
+  }
 }
