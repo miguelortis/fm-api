@@ -9,14 +9,14 @@ import { Policy } from './schemas/policy.schema';
 import { CreatePolicyDto } from './dto/create-policy.dto';
 import { BeneficiariesService } from '../beneficiaries/beneficiaries.service';
 import { UsersService } from '../users/users.service';
-import { FamilyCharge } from '../beneficiaries/schemas/family-charge.schema';
+import { Beneficiary } from '../beneficiaries/schemas/beneficiary.schema';
 
 @Injectable()
 export class PoliciesService {
   constructor(
     @InjectModel(Policy.name) private readonly policyModel: Model<Policy>,
-    @InjectModel(FamilyCharge.name)
-    private readonly familyChargeModel: Model<FamilyCharge>,
+    @InjectModel(Beneficiary.name)
+    private readonly familyChargeModel: Model<Beneficiary>,
     private readonly beneficiariesService: BeneficiariesService,
     private readonly usersService: UsersService,
   ) {}
@@ -72,9 +72,10 @@ export class PoliciesService {
 
       // 2. Control estricto de edad biográfica para exclusión de Hijos
       const beneficiaryData = charge.beneficiary as any;
-      const ageAtSubscription = this.calculateAge(beneficiaryData.birthDate);
-      const isSpecialChild =
-        charge.onModel === 'Beneficiary' ? !!beneficiaryData?.isSpecial : false;
+      const ageAtSubscription = this.calculateAge(
+        beneficiaryData.birthDate as Date,
+      );
+      const isSpecialChild = false;
 
       if (
         charge.relationship === 'HIJO' &&
@@ -89,7 +90,7 @@ export class PoliciesService {
       // 3. Insertamos la foto inmutable en la póliza anual
       structuredBeneficiaries.push({
         beneficiary: new Types.ObjectId(b.beneficiaryId),
-        onModel: charge.onModel,
+        onModel: 'User',
         relationship: charge.relationship,
         ageAtSubscription,
       });
@@ -130,10 +131,8 @@ export class PoliciesService {
           .lean()
           .exec();
 
-        // Buscamos dinámicamente los datos biográficos de la persona (User o Beneficiary)
-        const targetModel = b.onModel === 'User' ? 'User' : 'Beneficiary';
         const bioData = await this.policyModel.db
-          .model(targetModel)
+          .model('User')
           .findById(b.beneficiaryId)
           .select('firstName lastName nationalId civilRegistrySerial isSpecial')
           .lean()

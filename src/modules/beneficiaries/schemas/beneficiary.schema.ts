@@ -1,83 +1,55 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+
+//physicalDocuments types
+type IPhysicalDocumentStatus = {
+  isProvided: boolean;
+  verifiedBy: Types.ObjectId | null;
+  verifiedAt: Date | null;
+};
 
 @Schema({ timestamps: true })
 export class Beneficiary extends Document {
-  @Prop({ type: String, required: false })
-  nationalId: string; // Cédula (puede ser null para menores)
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  titular: Types.ObjectId;
 
-  // 🔒 Serial único de partida de nacimiento para menores sin cédula
-  @Prop({ type: String, required: false })
-  civilRegistrySerial: string;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  beneficiary: Types.ObjectId;
 
-  @Prop({ required: true, type: String })
-  firstName: string;
+  @Prop({ type: String, required: true })
+  relationship: string;
 
-  @Prop({ required: true, type: String })
-  lastName: string;
+  @Prop({ type: Boolean, default: false })
+  isFolderComplete: boolean;
 
-  @Prop({ required: true, type: Date })
-  birthDate: Date;
-
-  @Prop({ required: true, type: Boolean, default: false })
-  isSpecial: boolean; // Flag para hijos con condiciones especiales (cobertura ilimitada)
-
-  // Datos específicos desagregados del acta (para auditoría visual o reconstrucción)
   @Prop({
     type: {
-      state: String,
-      municipality: String,
-      year: String,
-      book: String,
-      actNumber: String,
-    },
-    _id: false,
-    default: null,
-  })
-  birthCertificateDetails: {
-    state: string;
-    municipality: string;
-    year: string;
-    book: string;
-    actNumber: string;
-  } | null;
-
-  // Expediente digital de documentos requeridos
-  @Prop({
-    type: {
-      nationalIdCopy: String, // URL del archivo de cédula
-      birthCertificateCopy: String, // URL del archivo de partida de nacimiento
-      legalProofSpecial: String, // URL del justificativo de condición especial
+      nationalIdCopy: String,
+      birthCertificateCopy: String,
+      legalProofSpecial: String,
     },
     _id: false,
   })
-  documents: {
-    nationalIdCopy?: string;
-    birthCertificateCopy?: string;
-    legalProofSpecial?: string;
+  @Prop({ type: Object, default: {} })
+  physicalDocuments: {
+    parentBirthCertificate?: IPhysicalDocumentStatus;
+    parentCedula?: IPhysicalDocumentStatus;
+    childBirthCertificate?: IPhysicalDocumentStatus;
+    titularCedula?: IPhysicalDocumentStatus;
+    specialProof?: IPhysicalDocumentStatus;
+    marriageCertificate?: IPhysicalDocumentStatus;
+    partnerCedula?: IPhysicalDocumentStatus;
   };
 }
 
 export const BeneficiarySchema = SchemaFactory.createForClass(Beneficiary);
-
-// Índice 1: Garantiza que la cédula sea única, pero IGNORA por completo los registros que no la tengan
+BeneficiarySchema.index({ titular: 1, beneficiary: 1 }, { unique: true });
 BeneficiarySchema.index(
-  { nationalId: 1 },
-  {
-    unique: true,
-    partialFilterExpression: { nationalId: { $exists: true, $type: 'string' } },
-  },
-);
-
-// Índice 2: Garantiza que el serial de la partida de nacimiento sea único si existe
-BeneficiarySchema.index(
-  { civilRegistrySerial: 1 },
+  { titular: 1, relationship: 1 },
   {
     unique: true,
     partialFilterExpression: {
-      civilRegistrySerial: { $exists: true, $type: 'string' },
+      relationship: { $in: ['PADRE', 'MADRE', 'PAREJA'] },
     },
   },
 );
-
-BeneficiarySchema.index({ firstName: 1, lastName: 1 });

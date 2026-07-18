@@ -24,20 +24,27 @@ export class AuthService {
     const user = await this.usersService.findByNationalId(nationalId);
 
     if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException('Cedula inválida');
     }
 
     // 2. Comparar contraseñas
-    const isMatch = await bcrypt.compare(pass, user.password as string);
-    if (!isMatch) {
+    if (!user.password) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    delete user.password; // Eliminar la contraseña del objeto antes de enviarlo
+    const isMatch = await bcrypt.compare(pass, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('Contraseña inválida');
+    }
+
+    delete (user as Partial<User>).password; // Eliminar la contraseña del objeto antes de enviarlo
     // 3. Generar el JWT con los datos clave (Payload)
     const payload = {
-      sub: user._id,
-      email: user.email,
+      sub: user?._id,
+      status: user?.status,
+      email: user?.email,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
     };
     return {
       access_token: this.jwtService.sign(payload),
@@ -48,42 +55,48 @@ export class AuthService {
   async register(registerDto: RegisterDto) {
     const { email, nationalId, password, ...rest } = registerDto;
 
-    // 1. Verificar duplicados
     const existingUser = await this.userModel.findOne({
       $or: [{ email }, { nationalId }],
     });
 
+    const userData = {
+      ...rest,
+      nationalId,
+      ...(email ? { email } : {}),
+      ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
+      isTitular: rest.isTitular ?? true,
+      birthDate: rest.birthDate ? new Date(rest.birthDate) : undefined,
+    };
+
+    let userRecord: User | null;
+
     if (existingUser) {
-      throw new BadRequestException(
-        'La cédula o el correo ya están registrados',
+      userRecord = await this.userModel.findByIdAndUpdate(
+        existingUser._id,
+        {
+          $set: userData,
+        },
+        { new: true },
       );
+    } else {
+      userRecord = await new this.userModel(userData).save();
     }
 
-    // 2. Hashear la contraseña
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!userRecord) {
+      throw new BadRequestException('No se pudo guardar el usuario');
+    }
 
-    // 3. Crear el usuario
-    const newUser = new this.userModel({
-      ...rest,
-      email,
-      nationalId,
-      password: hashedPassword,
-      roles: ['user'], // Roles por defecto
-    });
-
-    await newUser.save();
-
-    // 4. Generar token para login automático (Opcional pero recomendado)
-    const payload = { sub: newUser._id, username: newUser.nationalId };
+    const payload = { sub: userRecord._id, username: userRecord.nationalId };
 
     return {
       user: {
-        id: newUser._id,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        email: newUser.email,
-        nationalId: newUser.nationalId,
-        role: newUser.role,
+        id: userRecord._id,
+        firstName: userRecord.firstName,
+        lastName: userRecord.lastName,
+        email: userRecord.email,
+        nationalId: userRecord.nationalId,
+        role: userRecord.role,
+        isTitular: userRecord.isTitular,
       },
       access_token: await this.jwtService.signAsync(payload),
     };

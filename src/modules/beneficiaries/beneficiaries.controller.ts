@@ -7,6 +7,8 @@ import {
   Get,
   Patch,
   Param,
+  Delete,
+  UseFilters,
 } from '@nestjs/common';
 import { BeneficiariesService } from './beneficiaries.service';
 import { CreateBeneficiaryDto } from './dto/create-beneficiary.dto';
@@ -14,22 +16,26 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard'; // 🌟 Importamos el Guard de permisos institucional
 import { Types } from 'mongoose';
 import { CheckPermissions } from '@/common/decorators/check-permissions.decorator';
+import { MongoExceptionFilter } from '@/common/filters/mongo-exception.filter';
 
 @Controller('beneficiaries')
-@UseGuards(JwtAuthGuard) // Candado base general: Autenticado por JWT
+@UseGuards(JwtAuthGuard)
+@UseFilters(MongoExceptionFilter)
 export class BeneficiariesController {
   constructor(private readonly beneficiariesService: BeneficiariesService) {}
 
   // 👤 AUTOGESTIÓN PÚBLICA: El trabajador agrega un familiar a su carga
   @Post()
   async addFamiliarToCharge(
-    @Req() req: { user: { _id: string } },
+    @Req() req: { user: { _id: string; nationalId: string } },
     @Body()
     createBeneficiaryDto: CreateBeneficiaryDto & { relationship: string },
   ) {
     const titularId = req?.user?._id;
+    const nationalId = req?.user?.nationalId;
     return this.beneficiariesService.createOrFindAndLink(
       titularId,
+      nationalId,
       createBeneficiaryDto,
     );
   }
@@ -68,5 +74,12 @@ export class BeneficiariesController {
       body.isProvided,
       adminId,
     );
+  }
+
+  @Delete(':id')
+  //@CheckPermissions('beneficiaries:delete')
+  @UseGuards(PermissionsGuard)
+  async delete(@Param('id') id: string) {
+    return await this.beneficiariesService.delete(id);
   }
 }

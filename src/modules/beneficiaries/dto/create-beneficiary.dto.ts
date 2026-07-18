@@ -2,6 +2,8 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
+  IsDateString,
+  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -57,14 +59,25 @@ export class CreateBeneficiaryDto {
   @IsNotEmpty()
   lastName: string;
 
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  civilRegistrySerial: string | null;
-
   @Type(() => Date)
   @IsDate()
   birthDate: Date;
+
+  @IsString()
+  @IsOptional()
+  placeOfBirth?: string;
+
+  @IsOptional()
+  @IsEmail({}, { message: 'El correo debe ser válido' })
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  password?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isTitular?: boolean;
 
   @IsBoolean()
   @IsOptional()
@@ -79,4 +92,8 @@ export class CreateBeneficiaryDto {
   @ValidateNested()
   @Type(() => BeneficiaryDocumentsDto)
   documents?: BeneficiaryDocumentsDto;
+
+  @IsOptional()
+  @IsDateString()
+  registrationDate?: string;
 }

@@ -1,4 +1,12 @@
 {
+  "Panel General": [
+    {
+      "name": "Inicio",
+      "slug": "home:view",
+      "description": "Permite acceder visualmente a la pantalla de inicio.",
+      "type": "screen"
+    }
+  ],
   "Validación de Expedientes": [
     {
       "name": "Mesa de Validación",

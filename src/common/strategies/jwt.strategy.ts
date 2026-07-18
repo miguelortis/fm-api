@@ -37,7 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       })
       .lean()) as IUser | null;
 
-    if (!user || !user.isActive) {
+    if (!user || user.status === 'inactive') {
       throw new UnauthorizedException('Usuario no encontrado o inactivo');
     }
 
@@ -47,6 +47,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      nationalId: user.nationalId,
       role: user?.role?.['slug'],
       isRoot: user?.role?.['isRoot'],
       // Mapeamos solo los slugs de los permisos para facilitar la búsqueda

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -12,6 +12,7 @@ import { Permission, PermissionSchema } from './schemas/permission.schema';
 import { RolesController } from './roles.controller';
 import { JwtStrategy } from '@/common/strategies/jwt.strategy';
 
+@Global()
 @Module({
   imports: [
     UsersModule,
@@ -35,6 +36,6 @@ import { JwtStrategy } from '@/common/strategies/jwt.strategy';
     AuthController, // Maneja: /auth/login, /auth/register
     RolesController, // Maneja: /roles/seed, /roles/permissions
   ],
-  exports: [AuthService],
+  exports: [AuthService, JwtModule, JwtStrategy],
 })
 export class AuthModule {}
