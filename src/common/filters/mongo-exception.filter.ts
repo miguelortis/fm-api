@@ -49,7 +49,7 @@ export class MongoExceptionFilter implements ExceptionFilter {
       : HttpStatus.INTERNAL_SERVER_ERROR;
     const message = exception?.message || 'Error interno en el servidor.';
 
-    return response.status(status).json({
+    return response.status(status as number).json({
       statusCode: status,
       message: typeof message === 'string' ? message : message.message,
       error: exception?.name || 'InternalServerError',
